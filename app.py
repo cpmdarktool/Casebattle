@@ -175,14 +175,107 @@ _t = threading.Thread(target=_fetch_images, daemon=True); _t.start(); _t.join(ti
 
 def _get_img(name):
     base = re.sub(r'\s*\([^)]*\)\s*$', '', name).strip()
+    direct = SKIN_IMAGES.get(name) or SKIN_IMAGES.get(base)
+    if direct:
+        return direct
+    # Try partial match (ignore wear suffix)
+    for k, v in SKIN_IMAGES.items():
+        if k.startswith(base):
+            return v
     c = re.sub(r'_+', '_', re.sub(r'\([^)]*\)', '',
         name.replace('\u2605','').replace('|','_')).strip().replace(' ','_'))
-    return SKIN_IMAGES.get(name) or SKIN_IMAGES.get(base) or \
-           f"https://csgobackpack.net/img/items/png/{c}.png"
+    return f"https://community.cloudflare.steamstatic.com/economy/image/class/730/{c}/256fx256f"
 
 skin_list = [{"id":i,"name":n,"base_price":p,"image":_get_img(n)}
              for i,(n,p) in enumerate(skins_data)]
 available_percents = [5,10,15,20,25,30,35,40,45,50,55,60,65,70]
+
+# ── Cases ───────────────────────────────────────────────────────────────────
+CASES = [
+  {"id":0,"name":"Деревянный","price":50,"emoji":"🪵","tier":"Обычный",
+   "desc":"Самый доступный. Мелкие призы.","c1":"#2d1a0a","c2":"#6b3a1f","border":"#a0522d",
+   "items":[
+    {"name":"💰 5 ₽","value":5,"weight":22,"is_money":True,"rarity":"common"},
+    {"name":"💰 10 ₽","value":10,"weight":20,"is_money":True,"rarity":"common"},
+    {"name":"💰 20 ₽","value":20,"weight":18,"is_money":True,"rarity":"common"},
+    {"name":"💰 30 ₽","value":30,"weight":13,"is_money":True,"rarity":"uncommon"},
+    {"name":"AK-47 | Safari Mesh","skin_name":"AK-47 | Safari Mesh (BS)","value":50,"weight":10,"is_money":False,"rarity":"uncommon"},
+    {"name":"💰 75 ₽","value":75,"weight":8,"is_money":True,"rarity":"uncommon"},
+    {"name":"Glock-18 | Oxide Blaze","skin_name":"Glock-18 | Oxide Blaze","value":50,"weight":5,"is_money":False,"rarity":"rare"},
+    {"name":"💰 150 ₽","value":150,"weight":3,"is_money":True,"rarity":"rare"},
+    {"name":"💰 400 ₽","value":400,"weight":1,"is_money":True,"rarity":"legendary"},
+  ]},
+  {"id":1,"name":"Железный","price":150,"emoji":"⚙️","tier":"Нечастый",
+   "desc":"Металл и сталь. Средние призы.","c1":"#1a1a2e","c2":"#2d4a6b","border":"#4a7ca8",
+   "items":[
+    {"name":"💰 20 ₽","value":20,"weight":20,"is_money":True,"rarity":"common"},
+    {"name":"💰 40 ₽","value":40,"weight":18,"is_money":True,"rarity":"common"},
+    {"name":"💰 70 ₽","value":70,"weight":15,"is_money":True,"rarity":"common"},
+    {"name":"💰 110 ₽","value":110,"weight":12,"is_money":True,"rarity":"uncommon"},
+    {"name":"Desert Eagle | Mudder","skin_name":"Desert Eagle | Mudder","value":70,"weight":10,"is_money":False,"rarity":"uncommon"},
+    {"name":"💰 200 ₽","value":200,"weight":9,"is_money":True,"rarity":"uncommon"},
+    {"name":"💰 350 ₽","value":350,"weight":7,"is_money":True,"rarity":"rare"},
+    {"name":"M4A4 | Tornado","skin_name":"M4A4 | Tornado","value":55,"weight":5,"is_money":False,"rarity":"rare"},
+    {"name":"💰 800 ₽","value":800,"weight":3,"is_money":True,"rarity":"legendary"},
+    {"name":"💰 2500 ₽","value":2500,"weight":1,"is_money":True,"rarity":"legendary"},
+  ]},
+  {"id":2,"name":"Серебряный","price":350,"emoji":"🥈","tier":"Редкий",
+   "desc":"Серебряный блеск. Хороший шанс.","c1":"#1a2040","c2":"#2a4060","border":"#60a5fa",
+   "items":[
+    {"name":"💰 50 ₽","value":50,"weight":18,"is_money":True,"rarity":"common"},
+    {"name":"💰 100 ₽","value":100,"weight":16,"is_money":True,"rarity":"common"},
+    {"name":"💰 180 ₽","value":180,"weight":14,"is_money":True,"rarity":"common"},
+    {"name":"USP-S | Forest Leaves","skin_name":"USP-S | Forest Leaves","value":65,"weight":11,"is_money":False,"rarity":"uncommon"},
+    {"name":"💰 300 ₽","value":300,"weight":11,"is_money":True,"rarity":"uncommon"},
+    {"name":"💰 500 ₽","value":500,"weight":10,"is_money":True,"rarity":"rare"},
+    {"name":"💰 900 ₽","value":900,"weight":8,"is_money":True,"rarity":"rare"},
+    {"name":"MP9 | Setting Sun","skin_name":"MP9 | Setting Sun","value":300,"weight":7,"is_money":False,"rarity":"rare"},
+    {"name":"💰 3000 ₽","value":3000,"weight":4,"is_money":True,"rarity":"legendary"},
+    {"name":"💰 8000 ₽","value":8000,"weight":1,"is_money":True,"rarity":"legendary"},
+  ]},
+  {"id":3,"name":"Золотой","price":750,"emoji":"🏆","tier":"Эпик",
+   "desc":"Золотой стандарт. Крупные награды.","c1":"#2a1a00","c2":"#5c3800","border":"#f59e0b",
+   "items":[
+    {"name":"💰 100 ₽","value":100,"weight":17,"is_money":True,"rarity":"common"},
+    {"name":"💰 250 ₽","value":250,"weight":15,"is_money":True,"rarity":"common"},
+    {"name":"💰 500 ₽","value":500,"weight":13,"is_money":True,"rarity":"uncommon"},
+    {"name":"AK-47 | Predator","skin_name":"AK-47 | Predator","value":1000,"weight":11,"is_money":False,"rarity":"uncommon"},
+    {"name":"💰 800 ₽","value":800,"weight":11,"is_money":True,"rarity":"uncommon"},
+    {"name":"💰 1500 ₽","value":1500,"weight":10,"is_money":True,"rarity":"rare"},
+    {"name":"💰 3000 ₽","value":3000,"weight":8,"is_money":True,"rarity":"rare"},
+    {"name":"USP-S | Guardian","skin_name":"USP-S | Guardian","value":800,"weight":8,"is_money":False,"rarity":"rare"},
+    {"name":"💰 8000 ₽","value":8000,"weight":5,"is_money":True,"rarity":"legendary"},
+    {"name":"💰 25000 ₽","value":25000,"weight":2,"is_money":True,"rarity":"legendary"},
+  ]},
+  {"id":4,"name":"Кристальный","price":1500,"emoji":"💎","tier":"Легенда",
+   "desc":"Кристальная чистота. Ножи ждут.","c1":"#1a0a2e","c2":"#3d1278","border":"#a855f7",
+   "items":[
+    {"name":"💰 200 ₽","value":200,"weight":16,"is_money":True,"rarity":"common"},
+    {"name":"💰 500 ₽","value":500,"weight":14,"is_money":True,"rarity":"common"},
+    {"name":"💰 900 ₽","value":900,"weight":13,"is_money":True,"rarity":"uncommon"},
+    {"name":"💰 1500 ₽","value":1500,"weight":12,"is_money":True,"rarity":"uncommon"},
+    {"name":"★ Gut Knife | Scorched","skin_name":"\u2605 Gut Knife | Scorched (BS)","value":4500,"weight":10,"is_money":False,"rarity":"rare"},
+    {"name":"💰 2500 ₽","value":2500,"weight":11,"is_money":True,"rarity":"rare"},
+    {"name":"★ Navaja Knife","skin_name":"\u2605 Navaja Knife | Safari Mesh (BS)","value":4800,"weight":9,"is_money":False,"rarity":"rare"},
+    {"name":"💰 6000 ₽","value":6000,"weight":8,"is_money":True,"rarity":"legendary"},
+    {"name":"★ Shadow Daggers","skin_name":"\u2605 Shadow Daggers | Safari Mesh (BS)","value":5000,"weight":5,"is_money":False,"rarity":"legendary"},
+    {"name":"💰 25000 ₽","value":25000,"weight":2,"is_money":True,"rarity":"legendary"},
+  ]},
+  {"id":5,"name":"Обсидиановый","price":3000,"emoji":"⬛","tier":"Абсолют",
+   "desc":"Тьма внутри. Байонет ждёт тебя.","c1":"#050510","c2":"#1a0030","border":"#7c3aed",
+   "items":[
+    {"name":"💰 400 ₽","value":400,"weight":15,"is_money":True,"rarity":"common"},
+    {"name":"💰 800 ₽","value":800,"weight":13,"is_money":True,"rarity":"common"},
+    {"name":"💰 1500 ₽","value":1500,"weight":12,"is_money":True,"rarity":"uncommon"},
+    {"name":"💰 2500 ₽","value":2500,"weight":11,"is_money":True,"rarity":"uncommon"},
+    {"name":"★ Falchion Knife | Boreal Forest","skin_name":"\u2605 Falchion Knife | Boreal Forest (BS)","value":5500,"weight":10,"is_money":False,"rarity":"rare"},
+    {"name":"💰 5000 ₽","value":5000,"weight":10,"is_money":True,"rarity":"rare"},
+    {"name":"★ Huntsman Knife","skin_name":"\u2605 Huntsman Knife | Forest DDPAT (BS)","value":6000,"weight":9,"is_money":False,"rarity":"rare"},
+    {"name":"💰 15000 ₽","value":15000,"weight":8,"is_money":True,"rarity":"legendary"},
+    {"name":"Bayonet | Rust Coat","skin_name":"Bayonet | Rust Coat (BS)","value":25000,"weight":10,"is_money":False,"rarity":"legendary"},
+    {"name":"💰 80000 ₽","value":80000,"weight":2,"is_money":True,"rarity":"legendary"},
+  ]},
+]
 
 def get_mult(p):
     if p==5: return 10.0
@@ -477,6 +570,362 @@ ADMIN_HTML = """<!DOCTYPE html><html lang="ru"><head>
   </div>
 </div></body></html>"""
 
+CASES_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Case Battle — Кейсы</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<style>
+  *{box-sizing:border-box}
+  body{background:#0a0f1e;color:#eee;font-family:'Segoe UI',sans-serif;min-height:100vh}
+  .tb{background:#111827;border-bottom:1px solid #1f2937;padding:10px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .logo{color:#ffaa33;font-weight:800;font-size:1.05rem}
+  .bv{color:#ffaa33;font-weight:700;font-size:1.05rem}
+  .nl{color:#9ca3af;text-decoration:none;font-size:.86rem;padding:4px 11px;border-radius:12px;transition:.15s}
+  .nl:hover{background:#1f2937;color:#eee}
+  .nl.cur{background:#1f2937;color:#ffaa33}
+  .btn-plus{background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;font-weight:900;font-size:1.1rem;width:28px;height:28px;border-radius:50%;cursor:pointer;line-height:1;padding:0;display:inline-flex;align-items:center;justify-content:center}
+  .btn-withdraw{background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;color:#fff;font-weight:700;font-size:.78rem;padding:5px 11px;border-radius:14px;cursor:pointer}
+  /* cases grid */
+  .cg{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:18px}
+  .cc{border-radius:18px;padding:22px 16px;text-align:center;cursor:default;transition:transform .22s,box-shadow .22s;position:relative;overflow:hidden}
+  .cc:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 14px 40px rgba(0,0,0,.65)}
+  .cc::before{content:'';position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.07),transparent);pointer-events:none}
+  .ce{font-size:3rem;margin-bottom:10px;display:block;filter:drop-shadow(0 3px 8px rgba(0,0,0,.6))}
+  .cn{font-size:1.1rem;font-weight:800;margin-bottom:2px}
+  .ct{font-size:.67rem;letter-spacing:1.5px;text-transform:uppercase;opacity:.6;margin-bottom:8px}
+  .cd{font-size:.77rem;opacity:.58;margin-bottom:12px;line-height:1.4}
+  .cp{font-size:1.5rem;font-weight:900;margin-bottom:13px}
+  .bo{border:none;border-radius:14px;padding:9px 0;font-weight:800;font-size:.9rem;cursor:pointer;width:100%;transition:.15s}
+  .bo:hover{filter:brightness(1.13)}
+  .bo:disabled{opacity:.45;cursor:not-allowed;filter:none}
+  /* opening overlay */
+  .ov{position:fixed;inset:0;background:rgba(4,4,18,.96);z-index:3000;display:none;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:20px}
+  .ov.show{display:flex}
+  .ovt{font-size:1.25rem;font-weight:700;color:#ffaa33;margin-bottom:20px;text-align:center;letter-spacing:.5px}
+  /* strip */
+  .sw{width:min(660px,96vw);height:162px;overflow:hidden;position:relative;border-radius:14px;border:2px solid #2a2a4a;background:#06060f;box-shadow:0 0 40px rgba(0,0,0,.8)}
+  .sm{position:absolute;top:0;bottom:0;left:50%;transform:translateX(-50%);width:3px;background:#ffaa33;z-index:10;box-shadow:0 0 16px #ffaa33,0 0 4px #fff;pointer-events:none}
+  .sm::before{content:'\25BC';position:absolute;top:-18px;left:50%;transform:translateX(-50%);color:#ffaa33;font-size:12px}
+  .sm::after{content:'\25B2';position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);color:#ffaa33;font-size:12px}
+  .strip{display:flex;gap:6px;padding:8px;will-change:transform;transition:none}
+  .si{width:118px;min-width:118px;height:142px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:6px 4px;flex-shrink:0;position:relative}
+  .si img{height:62px;width:100%;object-fit:contain;margin-bottom:4px}
+  .si .sn{font-size:.62rem;text-align:center;line-height:1.2;opacity:.85;padding:0 2px}
+  .si .sv{font-size:.82rem;font-weight:800;margin-top:3px}
+  .si-ico{font-size:2.1rem;margin-bottom:5px}
+  .rcommon{background:#181e2e;border:1px solid #374151}
+  .runcommon{background:#0d2218;border:1px solid #1a7a3a}
+  .rrare{background:#160e30;border:1px solid #6d28d9}
+  .rlegendary{background:#1e1000;border:1px solid #b45309;box-shadow:inset 0 0 12px rgba(180,83,9,.15)}
+  /* result */
+  .rb{background:#111827;border:2px solid #1f2937;border-radius:22px;padding:28px 22px;text-align:center;max-width:340px;width:90vw;margin-top:22px;display:none;animation:popin .35s ease}
+  @keyframes popin{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+  .rb.show{display:block}
+  .rb.won{border-color:#22c55e;box-shadow:0 0 35px rgba(34,197,94,.2)}
+  .rb-img{height:110px;width:100%;object-fit:contain;margin-bottom:10px}
+  .rb-name{font-size:1rem;font-weight:700;margin-bottom:3px;line-height:1.3}
+  .rb-val{font-size:2rem;font-weight:900;margin-bottom:6px}
+  .rb-sub{font-size:.8rem;color:#6b7280;margin-bottom:16px}
+  .rb-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+  .rbtn{border:none;border-radius:12px;padding:9px 18px;font-weight:700;cursor:pointer;font-size:.86rem;transition:.15s}
+  .rbtn:hover{filter:brightness(1.1)}
+  .rbtn-close{background:#1f2937;color:#d1d5db;border:1px solid #374151}
+  .rbtn-again{background:linear-gradient(135deg,#ffaa33,#ff6b00);color:#000}
+  /* deposit/wd modals */
+  .mbg{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:1000;display:none;align-items:center;justify-content:center}
+  .mbg.open{display:flex}
+  .mbox{background:#111827;border:1px solid #1f2937;border-radius:20px;padding:26px;width:370px;max-width:96vw}
+  .mbox h5{color:#ffaa33;font-weight:800;margin-bottom:4px}
+  .ti{background:#1f2937;border:1px solid #374151;color:#eee;border-radius:10px;padding:8px 12px;width:100%;font-size:1rem;outline:none}
+  .ti:focus{border-color:#2563eb}
+  .cres{background:#1f2937;border-radius:12px;padding:13px;margin:13px 0;font-size:.88rem}
+  .cr{display:flex;justify-content:space-between;margin-bottom:5px}
+  .cl{color:#6b7280}.cv{color:#eee;font-weight:700}
+  .cv.b{color:#60a5fa}.cv.o{color:#ffaa33}
+  .bpay{background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;color:#fff;font-weight:800;border-radius:14px;padding:10px;width:100%;font-size:.93rem;cursor:pointer;margin-bottom:7px}
+  .bpay:disabled{background:#374151;color:#6b7280;cursor:not-allowed}
+  .bcx{background:none;border:none;color:#6b7280;font-size:1.2rem;cursor:pointer;line-height:1}
+  .note{font-size:.75rem;color:#6b7280;text-align:center;margin-top:6px}
+  .sts-paid{color:#86efac;font-weight:700}
+  .sts-wait{color:#fde68a}
+  /* toast */
+  .toast-c{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:9000;pointer-events:none}
+  .toast-m{background:#14532d;border:1px solid #22c55e;color:#86efac;border-radius:12px;padding:11px 22px;font-weight:600;margin-top:6px;display:none;text-align:center;white-space:nowrap}
+  .toast-m.e{background:#450a0a;border-color:#ef4444;color:#fca5a5}
+  .toast-m.show{display:block}
+</style></head><body>
+
+<!-- Deposit modal -->
+<div class="mbg" id="sendModal">
+  <div class="mbox">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h5 class="mb-0"><i class="fas fa-wallet" style="color:#22c55e"></i>&nbsp;Пополнение</h5>
+      <button class="bcx" onclick="closeDeposit()">&#10005;</button>
+    </div>
+    <p style="color:#6b7280;font-size:.79rem;margin-bottom:13px">1 TON = 140 &#8381; | Мин. 50 &#8381;</p>
+    <div id="s1">
+      <label style="font-size:.83rem;color:#9ca3af;margin-bottom:3px;display:block">Сумма в рублях:</label>
+      <input class="ti" type="number" id="rubIn" min="50" step="1" placeholder="Например: 280" oninput="calcSend()">
+      <div id="rubInErr" style="color:#f87171;font-size:.78rem;margin-top:4px;display:none">Минимальная сумма: 50 &#8381;</div>
+      <div class="cres" id="cres" style="display:none">
+        <div class="cr"><span class="cl">Сумма ₽</span><span class="cv o" id="cRub">—</span></div>
+        <div class="cr"><span class="cl">К оплате TON</span><span class="cv b" id="cTon">—</span></div>
+        <div class="cr" style="margin-bottom:0"><span class="cl">Способ</span><span class="cv">CryptoBot</span></div>
+      </div>
+      <button class="bpay" id="bCreate" style="display:none" onclick="createInvoice()"><i class="fas fa-receipt"></i>&nbsp;Создать счёт</button>
+    </div>
+    <div id="s2" style="display:none">
+      <div class="cres">
+        <div class="cr"><span class="cl">Счёт на</span><span class="cv b" id="s2Ton">—</span></div>
+        <div class="cr" style="margin-bottom:0"><span class="cl">Статус</span><span id="s2Status" class="sts-wait">Ожидает...</span></div>
+      </div>
+      <a class="bpay d-block text-center text-decoration-none" id="s2Link" href="#" target="_blank"><i class="fas fa-telegram"></i>&nbsp;Оплатить в CryptoBot</a>
+      <div class="note" id="s2Note">Баланс зачислится автоматически (~20 сек)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Withdrawal modal -->
+<div class="mbg" id="wdModal">
+  <div class="mbox">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h5 class="mb-0"><i class="fas fa-arrow-up" style="color:#a78bfa"></i>&nbsp;Заявка на вывод</h5>
+      <button class="bcx" onclick="closeWithdraw()">&#10005;</button>
+    </div>
+    <div id="wdForm">
+      <label style="font-size:.83rem;color:#9ca3af;margin-bottom:3px;display:block">TON-кошелёк:</label>
+      <input class="ti" type="text" id="wdWallet" placeholder="UQ...">
+      <label style="font-size:.83rem;color:#9ca3af;margin:10px 0 3px;display:block">Сумма в рублях:</label>
+      <input class="ti" type="number" id="wdRub" min="200" step="1" placeholder="Например: 280" oninput="calcWd()">
+      <div id="wdRubErr" style="color:#f87171;font-size:.78rem;margin-top:4px;display:none">Минимум 200 &#8381;</div>
+      <div class="cres" id="wdRes" style="display:none;margin-top:10px">
+        <div class="cr"><span class="cl">Спишется</span><span class="cv o" id="wdRubDisp">—</span></div>
+        <div class="cr" style="margin-bottom:0"><span class="cl">Получите TON</span><span class="cv b" id="wdTonDisp">—</span></div>
+      </div>
+      <button class="bpay" id="wdBtn" style="margin-top:12px;display:none" onclick="submitWithdraw()"><i class="fas fa-paper-plane"></i>&nbsp;Отправить заявку</button>
+      <div class="note" id="wdNote"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Opening overlay -->
+<div class="ov" id="ov">
+  <div class="ovt" id="ovt">Открываем кейс...</div>
+  <div class="sw"><div class="sm"></div><div class="strip" id="strip"></div></div>
+  <div class="rb" id="rb"><div id="rbc"></div><div class="rb-btns" id="rbbtns"></div></div>
+</div>
+
+<!-- Navbar -->
+<div class="tb">
+  <span class="logo"><i class="fas fa-dice"></i> CASE BATTLE</span>
+  <span style="flex:1"></span>
+  <span style="color:#d1d5db;font-size:.86rem"><i class="fas fa-user" style="color:#6b7280"></i> {{ username }}</span>
+  <span class="bv" id="balDisp">{{ balance|int }} &#8381;</span>
+  <button class="btn-plus" onclick="openDeposit()" title="Пополнить">+</button>
+  <button class="btn-withdraw" onclick="openWithdraw()"><i class="fas fa-arrow-up"></i> Вывод</button>
+  <a href="/" class="nl"><i class="fas fa-sync-alt"></i> Улучшение</a>
+  <a href="/cases" class="nl cur"><i class="fas fa-box"></i> Кейсы</a>
+  <a href="/inventory" class="nl"><i class="fas fa-box-open"></i> Инвентарь</a>
+  {% if is_admin %}<a href="/admin" class="nl" style="color:#f87171"><i class="fas fa-crown"></i> Admin</a>{% endif %}
+  <a href="/logout" class="nl"><i class="fas fa-sign-out-alt"></i> Выйти</a>
+</div>
+
+<div class="container-fluid px-3 py-3">
+  <h5 class="mb-1" style="color:#ffaa33"><i class="fas fa-box"></i> Кейсы</h5>
+  <p class="text-secondary mb-3" style="font-size:.82rem">Открывай кейсы и выигрывай скины или деньги! Чем дороже кейс — тем ценнее добыча.</p>
+  <div class="cg">
+    {% for c in cases %}
+    <div class="cc" style="background:linear-gradient(145deg,{{ c.c1 }},{{ c.c2 }});border:2px solid {{ c.border }}">
+      <span class="ce">{{ c.emoji }}</span>
+      <div class="cn">{{ c.name }}</div>
+      <div class="ct" style="color:{{ c.border }}">{{ c.tier }}</div>
+      <div class="cd">{{ c.desc }}</div>
+      <div class="cp" style="color:{{ c.border }}">{{ c.price }} &#8381;</div>
+      <button class="bo" id="bc{{ c.id }}"
+        style="background:linear-gradient(135deg,{{ c.border }},{{ c.c2 }});color:#fff"
+        onclick="openCase({{ c.id }},{{ c.price }},this)">
+        <i class="fas fa-lock-open"></i> Открыть
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="toast-c"><div class="toast-m" id="tmsg"></div></div>
+
+<script>
+let bal={{ balance }};
+let depId=null,pollTimer=null;
+const RCLS={common:'rcommon',uncommon:'runcommon',rare:'rrare',legendary:'rlegendary'};
+const RCOL={common:'#9ca3af',uncommon:'#4ade80',rare:'#a78bfa',legendary:'#f59e0b'};
+
+function upBal(v){bal=v;document.getElementById('balDisp').textContent=Math.floor(v).toLocaleString('ru-RU')+' \u20bd';}
+
+function toast(msg,err){
+  const t=document.getElementById('tmsg');
+  t.className='toast-m'+(err?' e':'')+' show';
+  t.innerHTML=msg;
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+function mkItem(it){
+  const d=document.createElement('div');
+  d.className='si '+(RCLS[it.rarity]||'rcommon');
+  if(it.is_money){
+    d.innerHTML='<div class="si-ico">\uD83D\uDCB0</div><div class="sn">'+it.name+'</div><div class="sv" style="color:#ffaa33">'+it.value.toLocaleString('ru-RU')+'\u20bd</div>';
+  } else {
+    const img=it.img?'<img src="'+it.img+'" onerror="this.style.display=\'none\'">':'';
+    d.innerHTML=img+'<div class="sn">'+it.name+'</div><div class="sv" style="color:'+(RCOL[it.rarity]||'#eee')+'">'+it.value.toLocaleString('ru-RU')+'\u20bd</div>';
+  }
+  return d;
+}
+
+let currentCase={id:0,price:0,btn:null};
+
+async function openCase(cid,price,btn){
+  if(bal<price){toast('\u274c Недостаточно баланса',true);return;}
+  if(btn)btn.disabled=true;
+
+  const r=await fetch('/open_case',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({case_id:cid})});
+  const d=await r.json();
+  if(!d.success){toast('\u274c '+(d.error||'Ошибка'),true);if(btn)btn.disabled=false;return;}
+
+  currentCase={id:cid,price:price,btn:btn};
+  upBal(d.new_balance);
+
+  // Build strip
+  const strip=document.getElementById('strip');
+  strip.innerHTML='';
+  strip.style.transition='none';
+  strip.style.transform='translateX(0)';
+  d.strip.forEach(it=>strip.appendChild(mkItem(it)));
+
+  // Show overlay
+  document.getElementById('ovt').textContent='\uD83C\uDF81 Открываем кейс...';
+  document.getElementById('rb').className='rb';
+  const ov=document.getElementById('ov');
+  ov.classList.add('show');
+
+  // Compute scroll target: winner at index 44
+  const WIDX=44,IW=124; // item=118 + gap=6
+  const cw=document.querySelector('.sw').offsetWidth;
+  const center=cw/2;
+  const itemCenter=8+WIDX*IW+59; // padding + items before + half-item
+  const tx=center-itemCenter;
+
+  // Animate
+  setTimeout(()=>{
+    strip.style.transition='transform 5.6s cubic-bezier(0.12,0,0.18,1)';
+    strip.style.transform='translateX('+tx+'px)';
+  },250);
+
+  // Show result
+  setTimeout(()=>showResult(d.winner,cid,price),6200);
+}
+
+function showResult(winner,cid,price){
+  document.getElementById('ovt').textContent=winner.is_money?'\uD83D\uDCB0 Выигрыш!':'\uD83C\uDF81 Выигрыш!';
+  const rb=document.getElementById('rb');
+  rb.className='rb show won';
+
+  let img='';
+  if(winner.is_money){img='<div style="font-size:3.5rem;margin-bottom:8px">\uD83D\uDCB0</div>';}
+  else if(winner.img){img='<img class="rb-img" src="'+winner.img+'" onerror="this.style.display=\'none\'">';}
+
+  const col=RCOL[winner.rarity]||'#ffaa33';
+  const sub=winner.is_money?'Деньги зачислены на баланс':'Скин добавлен в инвентарь';
+
+  document.getElementById('rbc').innerHTML=
+    img+
+    '<div class="rb-name">'+winner.name+'</div>'+
+    '<div class="rb-val" style="color:'+col+'">'+winner.value.toLocaleString('ru-RU')+' \u20bd</div>'+
+    '<div class="rb-sub">'+sub+'</div>';
+
+  document.getElementById('rbbtns').innerHTML=
+    '<button class="rbtn rbtn-close" onclick="closeOv()"><i class="fas fa-times"></i> Закрыть</button>'+
+    '<button class="rbtn rbtn-again" onclick="reopenCase()"><i class="fas fa-redo"></i> Ещё раз</button>';
+}
+
+function closeOv(){
+  document.getElementById('ov').classList.remove('show');
+  const b=document.getElementById('bc'+currentCase.id);
+  if(b)b.disabled=false;
+}
+
+function reopenCase(){
+  closeOv();
+  setTimeout(()=>{
+    const b=document.getElementById('bc'+currentCase.id);
+    openCase(currentCase.id,currentCase.price,b);
+  },150);
+}
+
+// ── Deposit ─────────────────────────────────────────────────
+function openDeposit(){document.getElementById('sendModal').classList.add('open');document.getElementById('rubIn').value='';calcSend();}
+function closeDeposit(){
+  document.getElementById('sendModal').classList.remove('open');
+  if(pollTimer){clearInterval(pollTimer);pollTimer=null;}depId=null;
+  const ri=document.getElementById('rubIn');ri.value='';ri.style.borderColor='';
+  document.getElementById('rubInErr').style.display='none';
+  document.getElementById('s1').style.display='';document.getElementById('s2').style.display='none';
+  document.getElementById('cres').style.display='none';document.getElementById('bCreate').style.display='none';
+}
+function calcSend(){
+  const inp=document.getElementById('rubIn'),rub=parseFloat(inp.value),hv=inp.value!=='',ok=rub>=50,bm=hv&&!ok;
+  inp.style.borderColor=bm?'#ef4444':'';
+  document.getElementById('rubInErr').style.display=bm?'block':'none';
+  document.getElementById('cres').style.display=ok?'block':'none';
+  document.getElementById('bCreate').style.display=ok?'block':'none';
+  if(ok){document.getElementById('cRub').textContent=Math.floor(rub).toLocaleString('ru-RU')+' \u20bd';document.getElementById('cTon').textContent=(rub/140).toFixed(4)+' TON';}
+}
+async function createInvoice(){
+  const rub=parseFloat(document.getElementById('rubIn').value);if(!rub||rub<50)return;
+  const btn=document.getElementById('bCreate');btn.disabled=true;btn.textContent='Создаём...';
+  const r=await fetch('/create_invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rub_amount:rub})});
+  const d=await r.json();
+  if(!d.success){btn.disabled=false;btn.innerHTML='<i class="fas fa-receipt"></i>&nbsp;Создать счёт';return;}
+  depId=d.dep_id;
+  document.getElementById('s2Ton').textContent=d.ton_amount.toFixed(4)+' TON';
+  document.getElementById('s2Link').href=d.pay_url;
+  document.getElementById('s1').style.display='none';document.getElementById('s2').style.display='block';
+  pollTimer=setInterval(async()=>{
+    const pr=await fetch('/check_deposit/'+depId);const pd=await pr.json();
+    if(pd.status==='approved'){
+      clearInterval(pollTimer);pollTimer=null;
+      document.getElementById('s2Status').className='sts-paid';
+      document.getElementById('s2Status').textContent='\u2705 Оплачено!';
+      document.getElementById('s2Note').innerHTML='<span style="color:#86efac">Баланс пополнен!</span>';
+      document.getElementById('s2Link').style.display='none';
+      const sr=await fetch('/get_state');const sd=await sr.json();upBal(sd.balance);
+      setTimeout(closeDeposit,2500);
+    }
+  },5000);
+}
+
+// ── Withdraw ────────────────────────────────────────────────
+function openWithdraw(){document.getElementById('wdModal').classList.add('open');document.getElementById('wdWallet').value='';const wr=document.getElementById('wdRub');wr.value='';wr.style.borderColor='';document.getElementById('wdRubErr').style.display='none';document.getElementById('wdRes').style.display='none';document.getElementById('wdBtn').style.display='none';document.getElementById('wdNote').innerHTML='';}
+function closeWithdraw(){document.getElementById('wdModal').classList.remove('open');}
+function calcWd(){
+  const inp=document.getElementById('wdRub'),rub=parseFloat(inp.value),hv=inp.value!=='',ok=rub>=200,bm=hv&&!ok;
+  inp.style.borderColor=bm?'#ef4444':'';
+  document.getElementById('wdRubErr').style.display=bm?'block':'none';
+  document.getElementById('wdRes').style.display=ok?'block':'none';
+  document.getElementById('wdBtn').style.display=ok?'block':'none';
+  if(ok){document.getElementById('wdRubDisp').textContent=Math.floor(rub).toLocaleString('ru-RU')+' \u20bd';document.getElementById('wdTonDisp').textContent=(rub/140).toFixed(4)+' TON';}
+}
+async function submitWithdraw(){
+  const wallet=document.getElementById('wdWallet').value.trim(),rub=parseFloat(document.getElementById('wdRub').value);
+  if(!wallet){document.getElementById('wdNote').innerHTML='<span style="color:#f87171">\u274c Укажите кошелёк</span>';return;}
+  if(!rub||rub<200){document.getElementById('wdNote').innerHTML='<span style="color:#f87171">\u274c Минимум 200 ₽</span>';return;}
+  const btn=document.getElementById('wdBtn');btn.disabled=true;btn.textContent='Отправляем...';
+  const r=await fetch('/withdraw_request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet_address:wallet,rub_amount:rub})});
+  const d=await r.json();
+  if(d.success){document.getElementById('wdNote').innerHTML='<span style="color:#86efac">\u2705 Заявка отправлена!</span>';upBal(d.new_balance);btn.style.display='none';setTimeout(closeWithdraw,2500);}
+  else{document.getElementById('wdNote').innerHTML='<span style="color:#f87171">\u274c '+(d.error||'Ошибка')+'</span>';btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i>&nbsp;Отправить заявку';}
+}
+</script></body></html>"""
+
 GAME_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Case Battle</title>
@@ -609,6 +1058,8 @@ GAME_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
   <span class="bv" id="balDisp">{{ balance|int }} &#8381;</span>
   <button class="btn-plus" onclick="openDeposit()" title="Пополнить баланс">+</button>
   <button class="btn-withdraw" onclick="openWithdraw()"><i class="fas fa-arrow-up"></i> Вывод</button>
+  <a href="/" class="nl" style="background:#1f2937;color:#ffaa33"><i class="fas fa-sync-alt"></i> Улучшение</a>
+  <a href="/cases" class="nl"><i class="fas fa-box"></i> Кейсы</a>
   <a href="/inventory" class="nl"><i class="fas fa-box-open"></i> Инвентарь</a>
   {% if is_admin %}<a href="/admin" class="nl" style="color:#f87171"><i class="fas fa-crown"></i> Admin</a>{% endif %}
   <a href="/logout" class="nl"><i class="fas fa-sign-out-alt"></i> Выйти</a>
@@ -1110,6 +1561,72 @@ def wd_reject():
             c.execute("UPDATE withdrawals SET status='rejected' WHERE id=?", (wd_id,))
             c.commit()
     return redirect('/admin?msg=Вывод+отклонён+средства+возвращены')
+
+# ── Cases ──────────────────────────────────────────────────────────────────
+@app.route('/cases')
+@login_required
+def cases_page():
+    u = current_user()
+    return render_template_string(CASES_HTML, cases=CASES,
+                                  username=u['username'], balance=u['balance'],
+                                  user_id=u['id'], is_admin=bool(u['is_admin']))
+
+@app.route('/open_case', methods=['POST'])
+@login_required
+def open_case():
+    uid = session['user_id']
+    data = request.get_json() or {}
+    try:
+        case_id = int(data.get('case_id', -1))
+    except (TypeError, ValueError):
+        return jsonify({'success': False, 'error': 'Неверный кейс'})
+    if not (0 <= case_id < len(CASES)):
+        return jsonify({'success': False, 'error': 'Неверный кейс'})
+    case = CASES[case_id]
+    price = case['price']
+    bal = _get_balance(uid)
+    if bal < price:
+        return jsonify({'success': False, 'error': 'Недостаточно баланса'})
+    _set_balance(uid, bal - price)
+
+    items = case['items']
+    weights = [it['weight'] for it in items]
+    winner = random.choices(items, weights=weights, k=1)[0]
+
+    WINNER_IDX = 44
+    strip = []
+    for i in range(50):
+        it = winner if i == WINNER_IDX else random.choices(items, weights=weights, k=1)[0]
+        img = '' if it['is_money'] else _get_img(it.get('skin_name', it['name']))
+        strip.append({'name': it['name'], 'value': it['value'],
+                      'is_money': it['is_money'], 'rarity': it['rarity'], 'img': img})
+
+    won_money = winner['is_money']
+    won_value = winner['value']
+    won_img = ''
+    if won_money:
+        _set_balance(uid, _get_balance(uid) + won_value)
+    else:
+        skin_nm = winner.get('skin_name', winner['name'])
+        won_img = _get_img(skin_nm)
+        with get_db() as c:
+            c.execute('INSERT INTO inventory (user_id,skin_name,skin_img,price) VALUES (?,?,?,?)',
+                      (uid, skin_nm, won_img, won_value))
+            c.commit()
+
+    return jsonify({
+        'success': True,
+        'strip': strip,
+        'winner_idx': WINNER_IDX,
+        'winner': {
+            'name': winner['name'],
+            'value': won_value,
+            'is_money': won_money,
+            'img': won_img,
+            'rarity': winner['rarity'],
+        },
+        'new_balance': _get_balance(uid),
+    })
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
