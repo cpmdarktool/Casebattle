@@ -277,6 +277,34 @@ CASES = [
   ]},
 ]
 
+# ── Case images ──────────────────────────────────────────────────────────────
+for _c in CASES: _c['img'] = ''   # pre-init image field
+CASE_IMG_NAMES = [
+    "CS:GO Weapon Case",               # Деревянный
+    "Operation Bravo Case",            # Железный
+    "Chroma Case",                     # Серебряный
+    "Operation Breakout Weapon Case",  # Золотой
+    "Spectrum Case",                   # Кристальный
+    "Fracture Case",                   # Обсидиановый
+]
+def _fetch_case_imgs():
+    try:
+        req = urllib.request.Request(
+            'https://raw.githubusercontent.com/ByMykel/CSGO-API/main/public/api/en/crates.json',
+            headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read().decode())
+        img_map = {item.get('name','').strip(): item.get('image','')
+                   for item in data if item.get('name') and item.get('image')}
+        for i, name in enumerate(CASE_IMG_NAMES):
+            url = img_map.get(name, '')
+            if url: CASES[i]['img'] = url
+        found = sum(1 for c in CASES if c['img'])
+        print(f"[case imgs] {found}/{len(CASES)} loaded")
+    except Exception as e:
+        print(f"[case imgs] {e}")
+_ct = threading.Thread(target=_fetch_case_imgs, daemon=True); _ct.start(); _ct.join(timeout=12)
+
 def get_mult(p):
     if p==5: return 10.0
     if p==70: return 1.15
@@ -592,6 +620,8 @@ CASES_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
   .cc:hover{transform:translateY(-5px) scale(1.02);box-shadow:0 14px 40px rgba(0,0,0,.65)}
   .cc::before{content:'';position:absolute;inset:0;background:linear-gradient(145deg,rgba(255,255,255,.07),transparent);pointer-events:none}
   .ce{font-size:3rem;margin-bottom:10px;display:block;filter:drop-shadow(0 3px 8px rgba(0,0,0,.6))}
+  .ce-img{height:96px;width:auto;max-width:140px;object-fit:contain;display:block;margin:0 auto 10px;filter:drop-shadow(0 4px 14px rgba(0,0,0,.8)) brightness(1.05);transition:transform .22s}
+  .cc:hover .ce-img{transform:scale(1.07) rotate(-2deg)}
   .cn{font-size:1.1rem;font-weight:800;margin-bottom:2px}
   .ct{font-size:.67rem;letter-spacing:1.5px;text-transform:uppercase;opacity:.6;margin-bottom:8px}
   .cd{font-size:.77rem;opacity:.58;margin-bottom:12px;line-height:1.4}
@@ -737,7 +767,7 @@ CASES_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
   <div class="cg">
     {% for c in cases %}
     <div class="cc" style="background:linear-gradient(145deg,{{ c.c1 }},{{ c.c2 }});border:2px solid {{ c.border }}">
-      <span class="ce">{{ c.emoji }}</span>
+      {% if c.img %}<img src="{{ c.img }}" class="ce-img" alt="{{ c.name }}" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="ce" style="display:none">{{ c.emoji }}</span>{% else %}<span class="ce">{{ c.emoji }}</span>{% endif %}
       <div class="cn">{{ c.name }}</div>
       <div class="ct" style="color:{{ c.border }}">{{ c.tier }}</div>
       <div class="cd">{{ c.desc }}</div>
