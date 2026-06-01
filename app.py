@@ -9,7 +9,8 @@ CRYPTO_BOT_TOKEN = '573098:AAx9n0XEj0mIxM5TEcyIHV5k6OX6KABMe9N'
 CRYPTO_BOT_API   = 'https://pay.crypt.bot/api'
 CRYPTO_BOT_UA    = 'Mozilla/5.0 (compatible; CaseBattle/1.0)'
 TON_RATE         = 140.0
-TON_MIN_RUB      = 140.0
+TON_MIN_RUB      = 50.0    # Minimum deposit in RUB
+WITHDRAW_MIN_RUB = 200.0   # Minimum withdrawal in RUB
 
 # ── DB ─────────────────────────────────────────────────────────────────────
 _data_dir = os.environ.get('DB_DIR', '/data')
@@ -540,12 +541,13 @@ GAME_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
       <h5 class="mb-0"><i class="fas fa-wallet" style="color:#22c55e"></i>&nbsp;Пополнение баланса</h5>
       <button class="bcx" onclick="closeDeposit()">&#10005;</button>
     </div>
-    <p style="color:#6b7280;font-size:.79rem;margin-bottom:13px">Курс: 1 TON = 140 &#8381;&nbsp;&nbsp;|&nbsp;&nbsp;Мин. 140 &#8381; (1 TON)</p>
+    <p style="color:#6b7280;font-size:.79rem;margin-bottom:13px">Курс: 1 TON = 140 &#8381;&nbsp;&nbsp;|&nbsp;&nbsp;Мин. 50 &#8381; (≈ 0.36 TON)</p>
 
     <!-- Step 1 -->
     <div id="s1">
       <label style="font-size:.83rem;color:#9ca3af;margin-bottom:3px;display:block">Сумма в рублях:</label>
-      <input class="ti" type="number" id="rubIn" min="140" step="1" placeholder="Например: 420" oninput="calcSend()">
+      <input class="ti" type="number" id="rubIn" min="50" step="1" placeholder="Например: 280" oninput="calcSend()">
+      <div id="rubInErr" style="color:#f87171;font-size:.78rem;margin-top:4px;display:none">Минимальная сумма пополнения: 50 &#8381;</div>
       <div class="cres" id="cres" style="display:none">
         <div class="cr"><span class="cl">Сумма ₽</span><span class="cv o" id="cRub">—</span></div>
         <div class="cr"><span class="cl">К оплате TON</span><span class="cv b" id="cTon">—</span></div>
@@ -582,7 +584,8 @@ GAME_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
       <label style="font-size:.83rem;color:#9ca3af;margin-bottom:3px;display:block">TON-кошелёк:</label>
       <input class="ti" type="text" id="wdWallet" placeholder="UQ...">
       <label style="font-size:.83rem;color:#9ca3af;margin:10px 0 3px;display:block">Сумма в рублях:</label>
-      <input class="ti" type="number" id="wdRub" min="140" step="1" placeholder="Например: 280" oninput="calcWd()">
+      <input class="ti" type="number" id="wdRub" min="200" step="1" placeholder="Например: 280" oninput="calcWd()">
+      <div id="wdRubErr" style="color:#f87171;font-size:.78rem;margin-top:4px;display:none">Минимальная сумма вывода: 200 &#8381;</div>
       <div class="cres" id="wdRes" style="display:none;margin-top:10px">
         <div class="cr"><span class="cl">Спишется с баланса</span><span class="cv o" id="wdRubDisp">—</span></div>
         <div class="cr" style="margin-bottom:0"><span class="cl">К получению TON</span><span class="cv b" id="wdTonDisp">—</span></div>
@@ -746,15 +749,22 @@ function closeDeposit(){
   document.getElementById('sendModal').classList.remove('open');
   if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
   depId=null;
+  const ri=document.getElementById('rubIn');ri.value='';ri.style.borderColor='';
+  document.getElementById('rubInErr').style.display='none';
   document.getElementById('s1').style.display='';document.getElementById('s2').style.display='none';
   document.getElementById('cres').style.display='none';document.getElementById('bCreate').style.display='none';
 }
 // ── Withdrawal Modal ───────────────────────────────────────
-function openWithdraw(){document.getElementById('wdModal').classList.add('open');document.getElementById('wdWallet').value='';document.getElementById('wdRub').value='';document.getElementById('wdRes').style.display='none';document.getElementById('wdBtn').style.display='none';document.getElementById('wdNote').innerHTML='';}
+function openWithdraw(){document.getElementById('wdModal').classList.add('open');document.getElementById('wdWallet').value='';const wr=document.getElementById('wdRub');wr.value='';wr.style.borderColor='';document.getElementById('wdRubErr').style.display='none';document.getElementById('wdRes').style.display='none';document.getElementById('wdBtn').style.display='none';document.getElementById('wdNote').innerHTML='';}
 function closeWithdraw(){document.getElementById('wdModal').classList.remove('open');}
 function calcWd(){
-  const rub=parseFloat(document.getElementById('wdRub').value);
-  const ok=rub>=140;
+  const inp=document.getElementById('wdRub');
+  const rub=parseFloat(inp.value);
+  const hasVal=inp.value!=='';
+  const ok=rub>=200;
+  const belowMin=hasVal&&!ok;
+  inp.style.borderColor=belowMin?'#ef4444':'';
+  document.getElementById('wdRubErr').style.display=belowMin?'block':'none';
   document.getElementById('wdRes').style.display=ok?'block':'none';
   document.getElementById('wdBtn').style.display=ok?'block':'none';
   if(ok){
@@ -766,7 +776,7 @@ async function submitWithdraw(){
   const wallet=document.getElementById('wdWallet').value.trim();
   const rub=parseFloat(document.getElementById('wdRub').value);
   if(!wallet){document.getElementById('wdNote').innerHTML='<span style="color:#f87171">\u274c Укажите адрес кошелька</span>';return;}
-  if(!rub||rub<140){document.getElementById('wdNote').innerHTML='<span style="color:#f87171">\u274c Минимум 140 ₽</span>';return;}
+  if(!rub||rub<200){document.getElementById('wdNote').innerHTML='<span style="color:#f87171">\u274c Минимум 200 ₽</span>';return;}
   const btn=document.getElementById('wdBtn');btn.disabled=true;btn.textContent='Отправляем...';
   const r=await fetch('/withdraw_request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet_address:wallet,rub_amount:rub})});
   const d=await r.json();
@@ -781,8 +791,13 @@ async function submitWithdraw(){
   }
 }
 function calcSend(){
-  const rub=parseFloat(document.getElementById('rubIn').value);
-  const ok=rub>=140;
+  const inp=document.getElementById('rubIn');
+  const rub=parseFloat(inp.value);
+  const hasVal=inp.value!=='';
+  const ok=rub>=50;
+  const belowMin=hasVal&&!ok;
+  inp.style.borderColor=belowMin?'#ef4444':'';
+  document.getElementById('rubInErr').style.display=belowMin?'block':'none';
   document.getElementById('cres').style.display=ok?'block':'none';
   document.getElementById('bCreate').style.display=ok?'block':'none';
   if(ok){
@@ -792,7 +807,7 @@ function calcSend(){
 }
 async function createInvoice(){
   const rub=parseFloat(document.getElementById('rubIn').value);
-  if(!rub||rub<140){return;}
+  if(!rub||rub<50){return;}
   const btn=document.getElementById('bCreate');btn.disabled=true;btn.textContent='Создаём счёт...';
   const r=await fetch('/create_invoice',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({rub_amount:rub})});
   const d=await r.json();
@@ -1058,8 +1073,8 @@ def withdraw_request():
     rub = float(data.get('rub_amount', 0))
     if not wallet:
         return jsonify({'success': False, 'error': 'Укажите адрес кошелька'})
-    if rub < TON_MIN_RUB:
-        return jsonify({'success': False, 'error': f'Минимум {TON_MIN_RUB:.0f} ₽'})
+    if rub < WITHDRAW_MIN_RUB:
+        return jsonify({'success': False, 'error': f'Минимум {WITHDRAW_MIN_RUB:.0f} ₽'})
     bal = _get_balance(uid)
     if bal < rub:
         return jsonify({'success': False, 'error': 'Недостаточно средств'})
