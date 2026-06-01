@@ -202,6 +202,9 @@ def login_required(f):
     @wraps(f)
     def w(*a, **kw):
         if not session.get('user_id'): return redirect('/login')
+        if current_user() is None:
+            session.clear()
+            return redirect('/login')
         return f(*a, **kw)
     return w
 
@@ -215,7 +218,8 @@ def admin_required(f):
 
 def _get_balance(uid):
     with get_db() as c:
-        return c.execute('SELECT balance FROM users WHERE id=?',(uid,)).fetchone()['balance']
+        row = c.execute('SELECT balance FROM users WHERE id=?',(uid,)).fetchone()
+        return row['balance'] if row else 0.0
 
 def _set_balance(uid, val):
     with get_db() as c:
