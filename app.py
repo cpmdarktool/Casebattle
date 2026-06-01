@@ -52,6 +52,16 @@ def init_db():
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             );
+            CREATE TABLE IF NOT EXISTS withdrawals (
+                id             INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id        INTEGER NOT NULL,
+                wallet_address TEXT NOT NULL,
+                rub_amount     REAL NOT NULL,
+                ton_amount     REAL NOT NULL,
+                status         TEXT DEFAULT 'pending',
+                created_at     TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY(user_id) REFERENCES users(id)
+            );
         ''')
         pw = hashlib.sha256('7890p'.encode()).hexdigest()
         c.execute('INSERT OR IGNORE INTO users (username,password,balance,is_admin) VALUES (?,?,?,?)',
@@ -369,9 +379,10 @@ ADMIN_HTML = """<!DOCTYPE html><html lang="ru"><head>
 </div>
 <div class="container-fluid px-3 py-3">
   <div class="row g-3 mb-3">
-    <div class="col-4"><div class="sb"><div class="sn">{{ st.users }}</div><div class="sl">Игроков</div></div></div>
-    <div class="col-4"><div class="sb"><div class="sn">{{ st.pending }}</div><div class="sl">Ожид. депозитов</div></div></div>
-    <div class="col-4"><div class="sb"><div class="sn">{{ "%.0f"|format(st.bal) }}</div><div class="sl">Баланс всего ₽</div></div></div>
+    <div class="col-3"><div class="sb"><div class="sn">{{ st.users }}</div><div class="sl">Игроков</div></div></div>
+    <div class="col-3"><div class="sb"><div class="sn">{{ st.pending }}</div><div class="sl">Ожид. депозитов</div></div></div>
+    <div class="col-3"><div class="sb"><div class="sn">{{ st.pending_wd }}</div><div class="sl">Ожид. выводов</div></div></div>
+    <div class="col-3"><div class="sb"><div class="sn">{{ "%.0f"|format(st.bal) }}</div><div class="sl">Баланс всего ₽</div></div></div>
   </div>
   {% if msg %}<div class="alert alert-success py-2 mb-3">{{ msg }}</div>{% endif %}
   <div class="panel">
@@ -405,6 +416,38 @@ ADMIN_HTML = """<!DOCTYPE html><html lang="ru"><head>
       </tbody>
     </table>
     {% else %}<p class="text-secondary mb-0" style="font-size:.84rem">Нет депозитов.</p>{% endif %}
+  </div>
+  <div class="panel">
+    <div class="ph"><i class="fas fa-arrow-up" style="color:#a78bfa"></i> Заявки на вывод</div>
+    {% if wds %}
+    <table class="table tbl table-dark table-hover">
+      <thead><tr><th>#</th><th>Юзер</th><th>₽</th><th>TON</th><th>Кошелёк</th><th>Статус</th><th>Дата</th><th>Действие</th></tr></thead>
+      <tbody>
+      {% for w in wds %}
+      <tr>
+        <td style="color:#374151">{{ w.id }}</td><td>{{ w.username }}</td>
+        <td style="color:#ffaa33;font-weight:700">{{ w.rub_amount|int }}₽</td>
+        <td style="color:#a78bfa;font-weight:700">{{ "%.4f"|format(w.ton_amount) }}</td>
+        <td><div class="tx">{{ w.wallet_address }}</div></td>
+        <td>{% if w.status=='approved' %}<span class="bok">Выплачен</span>{% elif w.status=='rejected' %}<span style="color:#f87171;font-size:.7rem">Откл.</span>{% else %}<span class="bpend">Ожидает</span>{% endif %}</td>
+        <td style="color:#6b7280;font-size:.73rem">{{ w.created_at[:16] }}</td>
+        <td>
+          {% if w.status=='pending' %}
+          <form method="POST" action="/admin/withdrawals/approve" style="display:inline">
+            <input type="hidden" name="wd_id" value="{{ w.id }}">
+            <button class="bg" type="submit" title="Подтвердить"><i class="fas fa-check"></i></button>
+          </form>
+          <form method="POST" action="/admin/withdrawals/reject" style="display:inline;margin-left:3px">
+            <input type="hidden" name="wd_id" value="{{ w.id }}">
+            <button class="br" type="submit" title="Отклонить и вернуть средства"><i class="fas fa-times"></i></button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}<p class="text-secondary mb-0" style="font-size:.84rem">Нет заявок на вывод.</p>{% endif %}
   </div>
   <div class="panel">
     <div class="ph"><i class="fas fa-users"></i> Пользователи</div>
@@ -442,7 +485,8 @@ GAME_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
   .bv{color:#ffaa33;font-weight:700;font-size:1.05rem}
   .nl{color:#9ca3af;text-decoration:none;font-size:.86rem;padding:4px 11px;border-radius:12px;transition:.15s}
   .nl:hover{background:#1f2937;color:#eee}
-  .btn-send{background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;color:#fff;font-weight:700;font-size:.82rem;padding:5px 13px;border-radius:16px;cursor:pointer}
+  .btn-plus{background:linear-gradient(135deg,#22c55e,#16a34a);border:none;color:#fff;font-weight:900;font-size:1.1rem;width:28px;height:28px;border-radius:50%;cursor:pointer;line-height:1;padding:0;display:inline-flex;align-items:center;justify-content:center}
+  .btn-withdraw{background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;color:#fff;font-weight:700;font-size:.78rem;padding:5px 11px;border-radius:14px;cursor:pointer}
   /* active skin */
   .ac{background:#111827;border:2px solid #1f2937;border-radius:16px;padding:16px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;transition:.3s}
   .ac.hs{border-color:#ffaa33}
@@ -489,12 +533,12 @@ GAME_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
   .sts-wait{color:#fde68a}
 </style></head><body>
 
-<!-- @send deposit modal -->
+<!-- Deposit modal -->
 <div class="mbg" id="sendModal">
   <div class="mbox">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-      <h5 class="mb-0"><i class="fas fa-paper-plane" style="color:#60a5fa"></i>&nbsp;Пополнение через @send</h5>
-      <button class="bcx" onclick="closeSend()">&#10005;</button>
+      <h5 class="mb-0"><i class="fas fa-wallet" style="color:#22c55e"></i>&nbsp;Пополнение баланса</h5>
+      <button class="bcx" onclick="closeDeposit()">&#10005;</button>
     </div>
     <p style="color:#6b7280;font-size:.79rem;margin-bottom:13px">Курс: 1 TON = 140 &#8381;&nbsp;&nbsp;|&nbsp;&nbsp;Мин. 140 &#8381; (1 TON)</p>
 
@@ -505,7 +549,7 @@ GAME_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
       <div class="cres" id="cres" style="display:none">
         <div class="cr"><span class="cl">Сумма ₽</span><span class="cv o" id="cRub">—</span></div>
         <div class="cr"><span class="cl">К оплате TON</span><span class="cv b" id="cTon">—</span></div>
-        <div class="cr" style="margin-bottom:0"><span class="cl">Через бота</span><span class="cv">@CryptoBot / @send</span></div>
+        <div class="cr" style="margin-bottom:0"><span class="cl">Способ оплаты</span><span class="cv">CryptoBot (@CryptoBot)</span></div>
       </div>
       <button class="bpay" id="bCreate" style="display:none" onclick="createInvoice()">
         <i class="fas fa-receipt"></i>&nbsp;Создать счёт
@@ -519,9 +563,34 @@ GAME_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
         <div class="cr" style="margin-bottom:0"><span class="cl">Статус</span><span id="s2Status" class="sts-wait">Ожидает оплаты...</span></div>
       </div>
       <a class="bpay d-block text-center text-decoration-none" id="s2Link" href="#" target="_blank">
-        <i class="fas fa-telegram"></i>&nbsp;Открыть @send / @CryptoBot
+        <i class="fas fa-telegram"></i>&nbsp;Оплатить в CryptoBot
       </a>
-      <div class="note" id="s2Note">Счёт будет автоматически зачислен после оплаты (≈20 сек)</div>
+      <div class="note" id="s2Note">Баланс зачислится автоматически после оплаты (≈20 сек)</div>
+    </div>
+  </div>
+</div>
+
+<!-- Withdrawal modal -->
+<div class="mbg" id="wdModal">
+  <div class="mbox">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <h5 class="mb-0"><i class="fas fa-arrow-up" style="color:#a78bfa"></i>&nbsp;Заявка на вывод</h5>
+      <button class="bcx" onclick="closeWithdraw()">&#10005;</button>
+    </div>
+    <p style="color:#6b7280;font-size:.79rem;margin-bottom:13px">Средства будут списаны сразу. Вывод обрабатывается администратором.</p>
+    <div id="wdForm">
+      <label style="font-size:.83rem;color:#9ca3af;margin-bottom:3px;display:block">TON-кошелёк:</label>
+      <input class="ti" type="text" id="wdWallet" placeholder="UQ...">
+      <label style="font-size:.83rem;color:#9ca3af;margin:10px 0 3px;display:block">Сумма в рублях:</label>
+      <input class="ti" type="number" id="wdRub" min="140" step="1" placeholder="Например: 280" oninput="calcWd()">
+      <div class="cres" id="wdRes" style="display:none;margin-top:10px">
+        <div class="cr"><span class="cl">Спишется с баланса</span><span class="cv o" id="wdRubDisp">—</span></div>
+        <div class="cr" style="margin-bottom:0"><span class="cl">К получению TON</span><span class="cv b" id="wdTonDisp">—</span></div>
+      </div>
+      <button class="bpay" id="wdBtn" style="margin-top:12px;display:none" onclick="submitWithdraw()">
+        <i class="fas fa-paper-plane"></i>&nbsp;Отправить заявку
+      </button>
+      <div class="note" id="wdNote"></div>
     </div>
   </div>
 </div>
@@ -531,7 +600,8 @@ GAME_HTML = r"""<!DOCTYPE html><html lang="ru"><head>
   <span style="flex:1"></span>
   <span style="color:#d1d5db;font-size:.86rem"><i class="fas fa-user" style="color:#6b7280"></i> {{ username }}</span>
   <span class="bv" id="balDisp">{{ balance|int }} &#8381;</span>
-  <button class="btn-send" onclick="openSend()"><i class="fas fa-paper-plane"></i> @send</button>
+  <button class="btn-plus" onclick="openDeposit()" title="Пополнить баланс">+</button>
+  <button class="btn-withdraw" onclick="openWithdraw()"><i class="fas fa-arrow-up"></i> Вывод</button>
   <a href="/inventory" class="nl"><i class="fas fa-box-open"></i> Инвентарь</a>
   {% if is_admin %}<a href="/admin" class="nl" style="color:#f87171"><i class="fas fa-crown"></i> Admin</a>{% endif %}
   <a href="/logout" class="nl"><i class="fas fa-sign-out-alt"></i> Выйти</a>
@@ -670,14 +740,45 @@ async function doSpin(){
 function showMsg(t,type){const e=document.getElementById('msgBox');e.className=type==='w'?'mw':type==='i'?'mi':'ml';e.style.display='block';e.innerHTML=t;}
 function hideMsg(){document.getElementById('msgBox').style.display='none';}
 
-// ── @send Modal ────────────────────────────────────────────
-function openSend(){document.getElementById('sendModal').classList.add('open');document.getElementById('rubIn').value='';calcSend();}
-function closeSend(){
+// ── Deposit Modal ──────────────────────────────────────────
+function openDeposit(){document.getElementById('sendModal').classList.add('open');document.getElementById('rubIn').value='';calcSend();}
+function closeDeposit(){
   document.getElementById('sendModal').classList.remove('open');
   if(pollTimer){clearInterval(pollTimer);pollTimer=null;}
   depId=null;
   document.getElementById('s1').style.display='';document.getElementById('s2').style.display='none';
   document.getElementById('cres').style.display='none';document.getElementById('bCreate').style.display='none';
+}
+// ── Withdrawal Modal ───────────────────────────────────────
+function openWithdraw(){document.getElementById('wdModal').classList.add('open');document.getElementById('wdWallet').value='';document.getElementById('wdRub').value='';document.getElementById('wdRes').style.display='none';document.getElementById('wdBtn').style.display='none';document.getElementById('wdNote').innerHTML='';}
+function closeWithdraw(){document.getElementById('wdModal').classList.remove('open');}
+function calcWd(){
+  const rub=parseFloat(document.getElementById('wdRub').value);
+  const ok=rub>=140;
+  document.getElementById('wdRes').style.display=ok?'block':'none';
+  document.getElementById('wdBtn').style.display=ok?'block':'none';
+  if(ok){
+    document.getElementById('wdRubDisp').textContent=Math.floor(rub).toLocaleString('ru-RU')+' \u20bd';
+    document.getElementById('wdTonDisp').textContent=(rub/140).toFixed(4)+' TON';
+  }
+}
+async function submitWithdraw(){
+  const wallet=document.getElementById('wdWallet').value.trim();
+  const rub=parseFloat(document.getElementById('wdRub').value);
+  if(!wallet){document.getElementById('wdNote').innerHTML='<span style="color:#f87171">\u274c Укажите адрес кошелька</span>';return;}
+  if(!rub||rub<140){document.getElementById('wdNote').innerHTML='<span style="color:#f87171">\u274c Минимум 140 ₽</span>';return;}
+  const btn=document.getElementById('wdBtn');btn.disabled=true;btn.textContent='Отправляем...';
+  const r=await fetch('/withdraw_request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wallet_address:wallet,rub_amount:rub})});
+  const d=await r.json();
+  if(d.success){
+    document.getElementById('wdNote').innerHTML='<span style="color:#86efac">\u2705 Заявка отправлена! Ожидайте подтверждения администратора.</span>';
+    upBal(d.new_balance);
+    btn.style.display='none';
+    setTimeout(closeWithdraw,3000);
+  } else {
+    document.getElementById('wdNote').innerHTML='<span style="color:#f87171">\u274c '+(d.error||'Ошибка')+'</span>';
+    btn.disabled=false;btn.innerHTML='<i class="fas fa-paper-plane"></i>&nbsp;Отправить заявку';
+  }
 }
 function calcSend(){
   const rub=parseFloat(document.getElementById('rubIn').value);
@@ -910,12 +1011,15 @@ def admin():
         users=c.execute('SELECT * FROM users ORDER BY is_admin DESC,id').fetchall()
         deps=c.execute('''SELECT d.*,u.username FROM deposits d JOIN users u ON u.id=d.user_id
                           ORDER BY d.created_at DESC LIMIT 50''').fetchall()
+        wds=c.execute('''SELECT w.*,u.username FROM withdrawals w JOIN users u ON u.id=w.user_id
+                         ORDER BY w.created_at DESC LIMIT 50''').fetchall()
         st={
             'users': c.execute('SELECT COUNT(*) FROM users WHERE is_admin=0').fetchone()[0],
             'pending': c.execute("SELECT COUNT(*) FROM deposits WHERE status='pending'").fetchone()[0],
+            'pending_wd': c.execute("SELECT COUNT(*) FROM withdrawals WHERE status='pending'").fetchone()[0],
             'bal': c.execute('SELECT COALESCE(SUM(balance),0) FROM users WHERE is_admin=0').fetchone()[0],
         }
-    return render_template_string(ADMIN_HTML, users=users, deps=deps, st=st,
+    return render_template_string(ADMIN_HTML, users=users, deps=deps, wds=wds, st=st,
                                   msg=request.args.get('msg'))
 
 @app.route('/admin/credit', methods=['POST'])
@@ -943,6 +1047,50 @@ def dep_reject():
     with get_db() as c:
         c.execute("UPDATE deposits SET status='rejected' WHERE id=?",(dep_id,)); c.commit()
     return redirect('/admin?msg=Депозит+отклонён')
+
+# ── Withdraw ───────────────────────────────────────────────────────────────
+@app.route('/withdraw_request', methods=['POST'])
+@login_required
+def withdraw_request():
+    uid = session['user_id']
+    data = request.get_json()
+    wallet = (data.get('wallet_address') or '').strip()
+    rub = float(data.get('rub_amount', 0))
+    if not wallet:
+        return jsonify({'success': False, 'error': 'Укажите адрес кошелька'})
+    if rub < TON_MIN_RUB:
+        return jsonify({'success': False, 'error': f'Минимум {TON_MIN_RUB:.0f} ₽'})
+    bal = _get_balance(uid)
+    if bal < rub:
+        return jsonify({'success': False, 'error': 'Недостаточно средств'})
+    ton = round(rub / TON_RATE, 4)
+    _set_balance(uid, bal - rub)
+    with get_db() as c:
+        c.execute('INSERT INTO withdrawals (user_id,wallet_address,rub_amount,ton_amount) VALUES (?,?,?,?)',
+                  (uid, wallet, round(rub, 2), ton))
+        c.commit()
+    return jsonify({'success': True, 'new_balance': _get_balance(uid)})
+
+@app.route('/admin/withdrawals/approve', methods=['POST'])
+@admin_required
+def wd_approve():
+    wd_id = int(request.form.get('wd_id', 0))
+    with get_db() as c:
+        c.execute("UPDATE withdrawals SET status='approved' WHERE id=?", (wd_id,))
+        c.commit()
+    return redirect('/admin?msg=Вывод+подтверждён')
+
+@app.route('/admin/withdrawals/reject', methods=['POST'])
+@admin_required
+def wd_reject():
+    wd_id = int(request.form.get('wd_id', 0))
+    with get_db() as c:
+        wd = c.execute("SELECT * FROM withdrawals WHERE id=? AND status='pending'", (wd_id,)).fetchone()
+        if wd:
+            _set_balance(wd['user_id'], _get_balance(wd['user_id']) + wd['rub_amount'])
+            c.execute("UPDATE withdrawals SET status='rejected' WHERE id=?", (wd_id,))
+            c.commit()
+    return redirect('/admin?msg=Вывод+отклонён+средства+возвращены')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
